@@ -11,7 +11,8 @@
 body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#222;background:#dde3ea;min-height:100vh;}
 
 /* ══ LOGIN SCREEN ══ */
-#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2739 0%,#2c3e50 100%);}
+#login-screen{display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2739 0%,#2c3e50 100%);}
+#login-screen.visible{display:flex;}
 .login-card{background:#fff;border-radius:12px;padding:36px 40px;width:360px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,0.35);}
 .login-logo{text-align:center;margin-bottom:20px;}
 .login-logo img{height:60px;}
@@ -289,7 +290,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#222;background
 <body>
 
 <!-- ═══════ LOGIN SCREEN ═══════ -->
-<div id="login-screen" style="display:flex;">
+<div id="login-screen">
   <div class="login-card">
     <div class="login-logo"><img src="Real Daycare Logo.jpg" alt="Real Day Care" onerror="this.style.display='none'"></div>
     <div class="login-title">Real Day Care Center</div>
@@ -1502,6 +1503,18 @@ function renderExpenses(){
 }
 
 /* ════════════════════════════════════════════════
+   LOGIN SCREEN HELPERS
+════════════════════════════════════════════════ */
+function showLogin(){
+  const ls=document.getElementById('login-screen');
+  ls.style.cssText='display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2739 0%,#2c3e50 100%);';
+  document.getElementById('main-app').style.display='none';
+}
+function hideLogin(){
+  document.getElementById('login-screen').style.display='none';
+}
+
+/* ════════════════════════════════════════════════
    SUPABASE CONFIG
 ════════════════════════════════════════════════ */
 const SUPABASE_URL="https://plpxsffxxcvlsajbpqgu.supabase.co";
@@ -1516,12 +1529,14 @@ async function doLogin(){
   const email=document.getElementById('login-email').value.trim();const pass=document.getElementById('login-password').value;const errEl=document.getElementById('login-error');const btn=document.getElementById('login-btn');
   errEl.style.display='none';if(!email||!pass){errEl.textContent='Please enter email and password.';errEl.style.display='block';return;}
   btn.disabled=true;btn.textContent='Signing in…';
-  const{data,error}=await _supa.auth.signInWithPassword({email,password:pass});
-  if(error){errEl.textContent=error.message||'Login failed. Check your credentials.';errEl.style.display='block';btn.disabled=false;btn.textContent='Sign In';}
-  else{await onLogin(data.user);}
+  try{
+    const{data,error}=await _supa.auth.signInWithPassword({email,password:pass});
+    if(error){errEl.textContent=error.message||'Login failed. Check your credentials.';errEl.style.display='block';btn.disabled=false;btn.textContent='Sign In';}
+    else{await onLogin(data.user);}
+  }catch(e){errEl.textContent='Connection error. Please try again.';errEl.style.display='block';btn.disabled=false;btn.textContent='Sign In';}
 }
-async function doLogout(){await _supa.auth.signOut();_currentUser=null;document.getElementById('login-screen').style.display='flex';document.getElementById('main-app').style.display='none';document.getElementById('login-email').value='';document.getElementById('login-password').value='';document.getElementById('login-btn').disabled=false;document.getElementById('login-btn').textContent='Sign In';}
-async function onLogin(user){_currentUser=user;document.getElementById('login-screen').style.display='none';document.getElementById('main-app').style.display='block';document.getElementById('user-email-label').textContent=user.email;await loadAllFromCloud();}
+async function doLogout(){await _supa.auth.signOut();_currentUser=null;showLogin();document.getElementById('login-email').value='';document.getElementById('login-password').value='';document.getElementById('login-btn').disabled=false;document.getElementById('login-btn').textContent='Sign In';}
+async function onLogin(user){_currentUser=user;hideLogin();document.getElementById('main-app').style.display='block';document.getElementById('user-email-label').textContent=user.email;await loadAllFromCloud();}
 
 /* ── CLOUD LOAD ── */
 async function loadAllFromCloud(){
@@ -1563,13 +1578,17 @@ async function deleteFromCloud(table,dbId){if(!dbId)return;await _supa.from(tabl
 
 /* ── SESSION CHECK ── */
 (async function checkSession(){
-  const{data:{session}}=await _supa.auth.getSession();
-  if(session){document.getElementById('login-screen').style.display='none';document.getElementById('main-app').style.display='block';await onLogin(session.user);}
-  else{document.getElementById('login-screen').style.display='flex';}
+  // Show a loading state while we check
+  document.getElementById('login-screen').style.cssText='display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2739 0%,#2c3e50 100%);';
+  try{
+    const{data:{session}}=await _supa.auth.getSession();
+    if(session){hideLogin();document.getElementById('main-app').style.display='block';await onLogin(session.user);}
+    else{showLogin();}
+  }catch(e){showLogin();}
 })();
 
 _supa.auth.onAuthStateChange((event,session)=>{
-  if(event==='SIGNED_OUT'){document.getElementById('login-screen').style.display='flex';document.getElementById('main-app').style.display='none';}
+  if(event==='SIGNED_OUT'){showLogin();document.getElementById('main-app').style.display='none';}
 });
 </script>
 </body>
