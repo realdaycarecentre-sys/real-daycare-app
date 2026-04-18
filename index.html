@@ -2808,10 +2808,10 @@ function renderExpenses(){
    SUPABASE CONFIG — REPLACE THESE WITH YOUR VALUES
    Get them from: Supabase Dashboard → Settings → API
 ════════════════════════════════════════════════ */
-const SUPABASE_URL = https://plpxsffxxcvlsajbpqgu.supabase.co;
-const SUPABASE_KEY  = sb_publishable_uGTyGM7_P-ZiL-nJlwG4Mg_q4xJ41WH;
+const SUPABASE_URL = "https://plpxsffxxcvlsajbpqgu.supabase.co";
+const SUPABASE_KEY = "sb_publishable_uGTyGM7_P-ZiL-nJlwG4Mg_q4xJ41WH";
 
-const _supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _currentUser = null;
 
 /* ── SYNC INDICATOR ── */
@@ -2830,12 +2830,16 @@ async function doLogin(){
   errEl.style.display='none';
   if(!email||!pass){errEl.textContent='Please enter email and password.';errEl.style.display='block';return;}
   btn.disabled=true; btn.textContent='Signing in…';
+
   const {data,error}=await _supa.auth.signInWithPassword({email,password:pass});
+  console.log("LOGIN RESULT:", data, error);
+
   if(error){
     errEl.textContent=error.message||'Login failed. Check your credentials.';
     errEl.style.display='block';
     btn.disabled=false; btn.textContent='Sign In';
   } else {
+    errEl.textContent='';
     await onLogin(data.user);
   }
 }
